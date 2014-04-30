@@ -195,14 +195,25 @@
 		1A8F7E321911356900B4BB5F /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				GCC_C_LANGUAGE_STANDARD = c99;
+				"OTHER_CFLAGS[arch=*]" = (
+					"-Wall",
+					"-Werror",
+					"-Wextra",
+					"-pedantic-errors",
+					"-std=c99",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "macosx windows linux";
 			};
 			name = Debug;
 		};
 		1A8F7E331911356900B4BB5F /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				GCC_C_LANGUAGE_STANDARD = c99;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "macosx windows linux";
 			};
 			name = Release;
 		};
