@@ -377,22 +377,24 @@ void exitMonitor() {
  * Event related kernel functions
  **/
 
+// list of event descriptors
 EventDescriptor events[MAX_EVENTS];
-
 size_t nextEventID = 0;
 
-int createEvent(){
+int createEvent(){ 
+	// We check if we haven't reached the max amount of events yet
     if(nextEventID == MAX_EVENTS)
     {
         fprintf(stderr, "Error: No more events available\n");
         exit(EXIT_FAILURE);
     }
-    events[nextEventID].waitingList = -1;
-    events[nextEventID].happened = false;
-    return nextEventID++;
+    events[nextEventID].waitingList = -1; // no process are waiting yet
+    events[nextEventID].happened = false; // event hasn't happened yet
+    return nextEventID++; // return the ID of the newly created event
 }
 
 void attendre(int eventID){
+	// we check if the given ID is valid
 	if(eventID >= nextEventID)
     {
         fprintf(stderr, "Error: using invalid event!!\n");
@@ -401,6 +403,7 @@ void attendre(int eventID){
 
     EventDescriptor event = events[eventID];
 
+    // if the event hasn't happened yet we queue the process in the event and transfer control
     if(!event.happened)
     {
         int temp = removeHead(&readyList);
@@ -410,6 +413,7 @@ void attendre(int eventID){
 }
 
 void declencher(int eventID){
+	// we check if the given ID is valid
 	if(eventID >= nextEventID)
     {
         fprintf(stderr, "Error: using invalid event!!\n");
@@ -418,6 +422,7 @@ void declencher(int eventID){
 
     EventDescriptor event = events[eventID];
 
+    // we move all the process waiting on the event in the readylist of our kernel
     while(head(&event.waitingList) != -1)
     {
         addLast(&readyList, removeHead(&event.waitingList));
@@ -425,13 +430,15 @@ void declencher(int eventID){
 }
 
 void reinitialiser(int eventID){
+	// we check if the given ID is valid
 	if(eventID >= nextEventID)
     {
         fprintf(stderr, "Error: using invalid event!!\n");
         exit(EXIT_FAILURE);
     }
 
-    EventDescriptor event = events[eventID];
 
+    EventDescriptor event = events[eventID];
+    // we reinitialize the state of the given event
     event.happened = false;
 }

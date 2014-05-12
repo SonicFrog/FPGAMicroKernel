@@ -13,8 +13,19 @@ typedef struct {
  **/
 int createEvent();
 
+/**
+ * Puts the running process in waiting state on the given event if it hasn't happened yet
+ **/
 void attendre(int eventID);
+
+/**
+ * Unlock all threads currently waiting on the given event
+ **/
 void declencher(int eventID);
+
+/**
+ * We reinitialize the given event (revert the happened part)
+ **/
 void reinitialiser(int eventID);
 
 #endif //_DEF_EVENT_H
