@@ -1,6 +1,7 @@
 #include "kernel.h"
 #include "system_m.h"
 #include "interrupt.h"
+#include "monitor.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
@@ -20,7 +21,6 @@ typedef struct {
 typedef struct {
     int n;
     int waitingList;
-    bool locked;
 } SemaphoreDescriptor;
 
 
@@ -36,7 +36,6 @@ int nextProcessId = 0;
 // list of semaphore descriptors
 SemaphoreDescriptor semaphores[MAXSEMAPHORES];
 int nextSemaphoreId = 0;
-
 
 /***********************************************************
  ***********************************************************
@@ -106,7 +105,7 @@ int head(int* list){
     }
 }
 
-/***********************************************************
+p/***********************************************************
  ***********************************************************
                     Kernel functions
 ************************************************************
@@ -185,17 +184,69 @@ void start(){
  **/
 
 MonitorDescriptor monitors[MAX_MONITORS];
-
 size_t nextMonitorID = 0;
 
-int getLastMonitor(ProcessDescriptor p)
+/**
+ * Returns the idof the last monitor the given process entered
+ * If the given process isn't in any monitors the return id is -1
+ **/
+int getLastMonitorId(ProcessDescriptor p)
 {
-    int i = -1;
-    while(p.monitors[i + 1] != -1 && i + 1 < MAX_MONITORS)
+    int i = 0;
+
+    while(p.monitors[i] != -1 && i < MAX_MONITORS)
     {
         i++;
     }
-    return i;
+
+    return p.monitors[i - 1];
+}
+
+/**
+ * Adds the given monitor to the monitor list of the given process
+ **/
+void pushMonitor(int pid, int mid)
+{
+    size_t i = 0;
+    ProcessDescriptor proc = processes[pid];
+
+    if(pid == -1 || mid == -1)
+        return;
+
+    while(proc.monitors[i] != -1 && i < MAX_MONITORS)
+    {
+        i++;
+    }
+
+    if(i == MAX_MONITORS)
+    {
+        fprintf(sdterr, "Error: This process is in too much monitors\n");
+        exit(1);
+    }
+    proc.monitors[i] = mid;
+}
+
+/**
+ * Removes the last monitor added to the given process
+ **/
+void popMonitor(int pid)
+{
+    size_t i = 0;
+    ProcessDescriptor proc = processes[pid];
+
+    if(pid == -1)
+        return;
+
+    while(proc.monitors[i] != -1 && i < MAX_MONITORS)
+    {
+        i++;
+    }
+
+    if(i == 0)
+    {
+        return;
+    }
+    proc.monitors[i - 1] = -1;
 }
 
 int createMonitor()
@@ -216,14 +267,17 @@ void enterMonitor(int monitorID)
     if(monitorID >= nextMonitorID)
     {
         fprintf(stderr, "Error: using invalid monitor!!\n");
-        exit(EXIT_FAILURE);
+        exit(1);
     }
 
+    int p = head(&readyList);
     MonitorDescriptor desc = monitors[monitorID];
 
-    if(desc.locked)
+    pushMonitor(p, monitorID); //Add the monitor to the process's list
+
+    if(desc.locked) //Transfer control if the monitor is locked
     {
-        int p = removeHead(&readyList);
+        removeHead(&readyList);
         addLast(&(desc.readyList), p);
         transfer(processes[head(&readyList)].p);
     }
@@ -234,10 +288,10 @@ void enterMonitor(int monitorID)
 }
 
 void wait() {
-    int mid = getLastMonitor(head(&readyList));
-    int pid = head(&(desc.readyList));
-    MonitorDescriptor desc = monitors[mid];
-    int p = removeHead(&readyList);
+    int mid = getLastMonitorId(head(&readyList));
+    int p = removeHead(&readyList); //Get the current PID
+    int pid = head(&(desc.readyList)); //Get the PID to wake up
+    MonitorDescriptor desc = monitors[process[p].monitors[mid]];
 
     addLast(&desc.waitingList, p);
 
@@ -249,26 +303,30 @@ void wait() {
     {
         addLast(&readyList, removeHead(&desc.readyList));
     }
+
     transfer(processes[head(&readyList)].p);
 }
 
 void notify() {
-    int mid = getLastMonitor(processes[head(&readyList)].p);
+    int mid = getLastMonitorId(processes[head(&readyList)].p);
+
     if(mid == -1)
     {
         //TODO handler errors
         exit(1);
     }
+
     //Put the first process in the waiting list of this monitor
     //in the ready list of the monitor
     addLast(&monitors[mid].readyList, removeHead(&monitors[mid].waitingList));
 }
 
 void notifyAll() {
-    int mid = getLastMonitor(processes[head(&readyList)].p);
-    if(mid == -1) 
+    int mid = getLastMonitorId(processes[head(&readyList)].p);
+
+    if(mid == -1)
     {
-        //TODO handle errors 
+        fprintf(stderr, "A process that was in no monitor notified a monitor\n");
         exit(1);
     }
 
@@ -282,11 +340,32 @@ void notifyAll() {
 
 void exitMonitor() {
     ProcessDescriptor desc = processes[head(&readyList)];
-    int mid = getLastMonitor(desc);
+    int mid = getLastMonitorId(desc);
+    MonitorDescriptor mon;
+    size_t i = 0;
 
     if(mid == -1)
     {
         fprintf(stderr, "A process that was in no monitors exited a monitor\n");
         exit(1);
     }
+
+    mon = monitor[mid];
+
+    if(mon.readyList == -1) //If no process is ready to run on the
+                            //monitor unlock it
+    {
+        mon.locked = false;
+    }
+    else
+    {
+        addLast(&readyList, removeHead(&mon.readyList));
+    }
+    //Removing this monitor from the list of monitor of the running
+    //process
+    while(desc.monitor[i] != -1 && i < MAX_MONITORS)
+    {
+        i++;
+    }
+    desc.monitor[i - 1] = -1;
 }
