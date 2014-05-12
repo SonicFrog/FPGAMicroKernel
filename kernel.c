@@ -6,6 +6,7 @@
 #include "system_m.h"
 #include "interrupt.h"
 #include "monitor.h"
+#include "event.h"
 
 // Maximum number of semaphores.
 #define MAXSEMAPHORES 10
@@ -370,4 +371,67 @@ void exitMonitor() {
         i++;
     }
     desc.monitors[i - 1] = -1;
+}
+
+/**
+ * Event related kernel functions
+ **/
+
+EventDescriptor events[MAX_EVENTS];
+
+size_t nextEventID = 0;
+
+int createEvent(){
+    if(nextEventID == MAX_EVENTS)
+    {
+        fprintf(stderr, "Error: No more events available\n");
+        exit(EXIT_FAILURE);
+    }
+    events[nextEventID].waitingList = -1;
+    events[nextEventID].happened = false;
+    return nextEventID++;
+}
+
+void attendre(int eventID){
+	if(eventID >= nextEventID)
+    {
+        fprintf(stderr, "Error: using invalid event!!\n");
+        exit(EXIT_FAILURE);
+    }
+
+    EventDescriptor event = events[eventID];
+
+    if(!event.happened)
+    {
+        int temp = removeHead(&readyList);
+        addLast(&(event.waitingList), temp);
+        transfer(processes[head(&readyList)].p);
+    }
+}
+
+void declencher(int eventID){
+	if(eventID >= nextEventID)
+    {
+        fprintf(stderr, "Error: using invalid event!!\n");
+        exit(EXIT_FAILURE);
+    }
+
+    EventDescriptor event = events[eventID];
+
+    while(head(&event.waitingList) != -1)
+    {
+        addLast(&readyList, removeHead(&event.waitingList));
+    }
+}
+
+void reinitialiser(int eventID){
+	if(eventID >= nextEventID)
+    {
+        fprintf(stderr, "Error: using invalid event!!\n");
+        exit(EXIT_FAILURE);
+    }
+
+    EventDescriptor event = events[eventID];
+
+    event.happened = false;
 }
