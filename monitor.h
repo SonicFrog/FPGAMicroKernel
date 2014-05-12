@@ -6,6 +6,7 @@
 typedef struct {
     int waitingList;
     int readyList;
+    bool locked;
 } MonitorDescriptor;
 
 /**
