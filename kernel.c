@@ -1,10 +1,10 @@
+#include <stdlib.h>
+#include <stdio.h>
+#include <stdbool.h>
 #include "kernel.h"
 #include "system_m.h"
 #include "interrupt.h"
 #include "monitor.h"
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdbool.h>
 
 // Maximum number of semaphores.
 #define MAXSEMAPHORES 10
@@ -105,7 +105,7 @@ int head(int* list){
     }
 }
 
-p/***********************************************************
+/***********************************************************
  ***********************************************************
                     Kernel functions
 ************************************************************
@@ -220,7 +220,7 @@ void pushMonitor(int pid, int mid)
 
     if(i == MAX_MONITORS)
     {
-        fprintf(sdterr, "Error: This process is in too much monitors\n");
+        fprintf(stderr, "Error: This process is in too much monitors\n");
         exit(1);
     }
     proc.monitors[i] = mid;
@@ -288,10 +288,11 @@ void enterMonitor(int monitorID)
 }
 
 void wait() {
-    int mid = getLastMonitorId(head(&readyList));
+    int mid = getLastMonitorId(processes[head(&readyList)]);
     int p = removeHead(&readyList); //Get the current PID
+    MonitorDescriptor desc = monitors[processes[p].monitors[mid]];
     int pid = head(&(desc.readyList)); //Get the PID to wake up
-    MonitorDescriptor desc = monitors[process[p].monitors[mid]];
+
 
     addLast(&desc.waitingList, p);
 
@@ -308,7 +309,7 @@ void wait() {
 }
 
 void notify() {
-    int mid = getLastMonitorId(processes[head(&readyList)].p);
+    int mid = getLastMonitorId(processes[head(&readyList)]);
 
     if(mid == -1)
     {
@@ -322,7 +323,7 @@ void notify() {
 }
 
 void notifyAll() {
-    int mid = getLastMonitorId(processes[head(&readyList)].p);
+    int mid = getLastMonitorId(processes[head(&readyList)]);
 
     if(mid == -1)
     {
@@ -350,7 +351,7 @@ void exitMonitor() {
         exit(1);
     }
 
-    mon = monitor[mid];
+    mon = monitors[mid];
 
     if(mon.readyList == -1) //If no process is ready to run on the
                             //monitor unlock it
@@ -363,9 +364,9 @@ void exitMonitor() {
     }
     //Removing this monitor from the list of monitor of the running
     //process
-    while(desc.monitor[i] != -1 && i < MAX_MONITORS)
+    while(desc.monitors[i] != -1 && i < MAX_MONITORS)
     {
         i++;
     }
-    desc.monitor[i - 1] = -1;
+    desc.monitors[i - 1] = -1;
 }
