@@ -1,17 +1,30 @@
 #ifndef KERNEL_H_
 #define KERNEL_H_
 
-void createProcess (void (*f), int stackSize);
+void createProcess(void (*f)(), int stackSize);
 
 void start();
 
-int createSemaphore(int n);
+int createMonitor();
 
-void P(int s);
+void enterMonitor(int monitorID);
 
-void V(int s);
+void exitMonitor();
+
+void wait();
+
+void notify();
+
+void notifyAll();
 
 void yield();
 
+int createEvent();
+
+void attendre(int eventID);
+
+void declencher(int eventID);
+
+void reinitialiser(int eventID);
 
 #endif /*KERNEL_H_*/
