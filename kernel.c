@@ -125,7 +125,7 @@ int head(int* list){
 ************************************************************
 * **********************************************************/
 
-void createProcess (void (*f), int stackSize) {
+void createProcess (void (*f)(), int stackSize) {
     if (nextProcessId == MAXPROCESS){
         printf("Error: Maximum number of processes reached!\n");
         exit(1);
@@ -277,6 +277,7 @@ int popMonitor(int pid)
     {
         return -1;
     }
+
     ret = proc->monitors[i - 1];
     proc->monitors[i - 1] = -1;
     return ret;
@@ -316,8 +317,10 @@ void enterMonitor(int monitorID)
 
     pushMonitor(p, monitorID); //Add the monitor to the process's list
 
-    if(desc->locked && !hasLock) //Transfer control if the monitor is locked
+    if(desc->locked && !hasLock) 
     {
+        //Transfer control if the monitor is locked and it's another
+        //process that has the lock
         removeHead(&readyList);
         addLast(&(desc->readyList), p);
         transfer(processes[head(&readyList)].p);
