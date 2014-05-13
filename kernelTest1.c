@@ -222,6 +222,8 @@ int main() {
 
         displayNumber(0, 9);
 
+        sleep(1);
+
 	createProcess(consumer0, STACK_SIZE);
 	createProcess(consumer1, STACK_SIZE);
 	createProcess(consumer2, STACK_SIZE);
