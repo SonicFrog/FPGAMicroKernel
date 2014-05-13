@@ -307,7 +307,7 @@ int createMonitor()
  **/
 void enterMonitor(int monitorID)
 {
-    fprintf(stderr, "Entering monitor %d\n", monitorID);
+    fprintf(stderr, "%d entering monitor %d\n", head(&readyList), monitorID);
     if(monitorID >= nextMonitorID)
     {
         fprintf(stderr, "Error: using invalid monitor!!\n");
