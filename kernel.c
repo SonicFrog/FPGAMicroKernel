@@ -344,8 +344,6 @@ void wait() {
 
     fprintf(stderr, "Process %d waiting on monitor %d\n", p, mid);
 
-    addLast(&desc->waitingList, p);
-
     displayNumber(0, p);
     displayNumber(1, mid);
 
@@ -354,6 +352,8 @@ void wait() {
         fprintf(stderr, "Tried to wait on no monitors\n");
         exit(1);
     }
+
+    addLast(&desc->waitingList, p);
 
     if(pid == -1) //No one can execute on this monitor
     {
