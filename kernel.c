@@ -344,9 +344,10 @@ void wait() {
 
     fprintf(stderr, "Process %d waiting on monitor %d\n", p, mid);
 
-    displayNumber(0, 9);
-
     addLast(&desc->waitingList, p);
+
+    displayNumber(0, p);
+    displayNumber(1, mid);
 
     if(mid == -1)
     {
