@@ -183,9 +183,9 @@ void V(int s){
 
 void start(){
 
-    printf("Starting kernel...\n");
+    fprintf(stderr, "Starting kernel...\n");
     if (readyList == -1){
-        printf("Error: No process in the ready list!\n");
+        fprintf(stderr, "Error: No process in the ready list!\n");
         exit(1);
     }
     Process process = processes[head(&readyList)].p;
