@@ -303,6 +303,7 @@ int createMonitor()
  **/
 void enterMonitor(int monitorID)
 {
+    printf("Entering monitor %d\n", monitorID);
     if(monitorID >= nextMonitorID)
     {
         fprintf(stderr, "Error: using invalid monitor!!\n");
@@ -337,6 +338,7 @@ void wait() {
     MonitorDescriptor *desc = &monitors[processes[p].monitors[mid]];
     int pid = head(&(desc->readyList)); //Get the PID to wake up
 
+    printf("%d waiting on %d\n", p, mid);
 
     addLast(&desc->waitingList, p);
 
@@ -355,12 +357,14 @@ void wait() {
 void notify() {
     int mid = getLastMonitorId(processes[head(&readyList)]);
 
+    printf("Notifying %d\n", mid);
+
     if(mid == -1)
     {
         printf("A process that was in no monitor notified\n");
         exit(1);
     }
-
+    
     //Put the first process in the waiting list of this monitor
     //in the ready list of the monitor
     addLast(&monitors[mid].readyList, removeHead(&(monitors[mid].waitingList)));
@@ -368,6 +372,8 @@ void notify() {
 
 void notifyAll() {
     int mid = getLastMonitorId(processes[head(&readyList)]);
+
+    printf("Notifying all on %d\n", mid);
 
     if(mid == -1)
     {
@@ -387,6 +393,8 @@ void exitMonitor() {
     ProcessDescriptor desc = processes[head(&readyList)];
     int mid = popMonitor(head(&readyList));
     MonitorDescriptor *mon;
+
+    printf("%d exiting monitor %d\n", head(&readyList), mid);
 
     if(mid == -1)
     {
