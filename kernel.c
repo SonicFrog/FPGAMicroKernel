@@ -219,7 +219,7 @@ int getLastMonitorId(ProcessDescriptor p)
 }
 
 /**
-git  * Returns true if p is in the monitor identified by mid
+ * Returns true if p is in the monitor identified by mid
  **/
 bool hasMonitor(ProcessDescriptor p, int mid)
 {
@@ -287,7 +287,7 @@ int popMonitor(int pid)
 
 int createMonitor()
 {
-    fprintf(stderr, "Creating monitor %d\n", nextMonitorID + 1);
+    fprintf(stderr, "Creating monitor %d\n", nextMonitorID);
 
     if(nextMonitorID == MAX_MONITORS)
     {
@@ -301,13 +301,11 @@ int createMonitor()
 }
 
 /**
- * Not checking if the process is already in the monitor
- * It's the programmer's responsibility to not enter the same monitor
- * twice and avoid deadlocking ?
+ * Entering monitor
  **/
 void enterMonitor(int monitorID)
 {
-    fprintf(stderr, "%d entering monitor %d\n", head(&readyList), monitorID);
+    fprintf(stderr, "Process %d entering monitor %d\n", head(&readyList), monitorID);
     if(monitorID >= nextMonitorID)
     {
         fprintf(stderr, "Error: using invalid monitor!!\n");
@@ -324,6 +322,7 @@ void enterMonitor(int monitorID)
 
     if(desc->locked && !hasLock) 
     {
+        fprintf(stderr, "Someone is already in monitor %d\n", monitorID);
         //Transfer control if the monitor is locked and it's another
         //process that has the lock
         removeHead(&readyList);
@@ -332,6 +331,7 @@ void enterMonitor(int monitorID)
     }
     else //Else lock it for ourselves
     {
+        fprintf(stderr, "Successfully entered monitor %d\n", monitorID);
         desc->locked = true;
     }
 }
@@ -342,12 +342,13 @@ void wait() {
     MonitorDescriptor *desc = &monitors[processes[p].monitors[mid]];
     int pid = head(&(desc->readyList)); //Get the PID to wake up
 
-    fprintf(stderr, "%d waiting on monitor %d\n", p, mid);
+    fprintf(stderr, "Process %d waiting on monitor %d\n", p, mid);
 
     addLast(&desc->waitingList, p);
 
     if(pid == -1) //No one can execute on this monitor
     {
+        fprintf(stderr, "No one in monitor %d\n", mid);
         desc->locked = false;
     }
     else //Wake the first ready process for this monitor
