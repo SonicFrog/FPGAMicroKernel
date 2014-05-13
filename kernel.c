@@ -217,6 +217,21 @@ int getLastMonitorId(ProcessDescriptor p)
 }
 
 /**
+ * Returns true if p is in the monitor identified by mid
+ **/
+bool hasMonitor(ProcessDescriptor p, int mid)
+{
+    size_t i = 0;
+
+    for(i = 0 ; i < MAX_MONITORS ; i++)
+    {
+        if(p.monitors[i] == mid)
+            return true;
+    }
+    return false;
+}
+
+/**
  * Adds the given monitor to the monitor list of the given process
  **/
 void pushMonitor(int pid, int mid)
@@ -242,14 +257,16 @@ void pushMonitor(int pid, int mid)
 
 /**
  * Removes the last monitor added to the given process
+ * and return the id of the monitor we just exited
  **/
-void popMonitor(int pid)
+int popMonitor(int pid)
 {
     size_t i = 0;
     ProcessDescriptor* proc = &processes[pid];
+    int ret = -1;
 
     if(pid == -1)
-        return;
+        return -1;
 
     while(proc->monitors[i] != -1 && i < MAX_MONITORS)
     {
@@ -258,9 +275,11 @@ void popMonitor(int pid)
 
     if(i == 0) //No monitor to pop
     {
-        return;
+        return -1;
     }
+    ret = proc->monitors[i - 1];
     proc->monitors[i - 1] = -1;
+    return ret;
 }
 
 int createMonitor()
@@ -289,15 +308,18 @@ void enterMonitor(int monitorID)
         exit(1);
     }
 
+    bool hasLock = false;
     int p = head(&readyList);
     MonitorDescriptor *desc = &monitors[monitorID];
+    
+    hasLock = hasMonitor(processes[p], monitorID);
 
     pushMonitor(p, monitorID); //Add the monitor to the process's list
 
-    if(desc->locked) //Transfer control if the monitor is locked
+    if(desc->locked && !hasLock) //Transfer control if the monitor is locked
     {
         removeHead(&readyList);
-        addLast(&desc->readyList, p);
+        addLast(&(desc->readyList), p);
         transfer(processes[head(&readyList)].p);
     }
     else //Else lock it for ourselves
@@ -321,7 +343,7 @@ void wait() {
     }
     else //Wake the first ready process for this monitor
     {
-        addLast(&readyList, removeHead(&desc->readyList));
+        addLast(&readyList, removeHead(&(desc->readyList)));
     }
 
     transfer(processes[head(&readyList)].p);
@@ -338,7 +360,7 @@ void notify() {
 
     //Put the first process in the waiting list of this monitor
     //in the ready list of the monitor
-    addLast(&monitors[mid].readyList, removeHead(&monitors[mid].waitingList));
+    addLast(&monitors[mid].readyList, removeHead(&(monitors[mid].waitingList)));
 }
 
 void notifyAll() {
@@ -360,7 +382,7 @@ void notifyAll() {
 
 void exitMonitor() {
     ProcessDescriptor desc = processes[head(&readyList)];
-    int mid = getLastMonitorId(desc);
+    int mid = popMonitor(head(&readyList));
     MonitorDescriptor *mon;
 
     if(mid == -1)
@@ -371,17 +393,16 @@ void exitMonitor() {
 
     mon = &monitors[mid];
 
-    if(mon->readyList == -1) //If no process is ready to run
+    if(mon->readyList == -1 && !hasMonitor(desc, mid)) //If no process is ready to run
     {
         mon->locked = false; //Unlock the monitor
     }
-    else
+    else if(!hasMonitor(desc, mid)) //We don't have the monitor
     {
         //Put the first ready to run process in the kernel queue
-        addLast(&readyList, removeHead(&mon->readyList));
+        addLast(&readyList, removeHead(&(mon->readyList)));
     }
-
-    popMonitor(head(&readyList));
+    //If we still have the monitor we don't need to do anything
 }
 
 /**
