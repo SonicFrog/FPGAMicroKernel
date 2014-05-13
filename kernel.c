@@ -186,7 +186,7 @@ void start(){
  **/
 
 MonitorDescriptor monitors[MAX_MONITORS];
-size_t nextMonitorID = 0;
+int nextMonitorID = 0;
 
 /**
  * Returns the idof the last monitor the given process entered
@@ -315,7 +315,7 @@ void notify() {
 
     if(mid == -1)
     {
-        //TODO handler errors
+        printf("A process that was in no monitor notified\n");
         exit(1);
     }
 
@@ -379,7 +379,7 @@ void exitMonitor() {
 
 // list of event descriptors
 EventDescriptor events[MAX_EVENTS];
-size_t nextEventID = 0;
+int nextEventID = 0;
 
 int createEvent(){ 
 	// We check if we haven't reached the max amount of events yet
@@ -431,7 +431,7 @@ void declencher(int eventID){
 
 void reinitialiser(int eventID){
 	// we check if the given ID is valid
-	if(eventID >= nextEventID)
+    if(eventID >= nextEventID)
     {
         fprintf(stderr, "Error: using invalid event!!\n");
         exit(EXIT_FAILURE);
