@@ -189,7 +189,7 @@ MonitorDescriptor monitors[MAX_MONITORS];
 int nextMonitorID = 0;
 
 /**
- * Returns the idof the last monitor the given process entered
+ * Returns the id of the last monitor the given process entered
  * If the given process isn't in any monitors the return id is -1
  **/
 int getLastMonitorId(ProcessDescriptor p)
@@ -217,10 +217,10 @@ void pushMonitor(int pid, int mid)
 
     while(proc.monitors[i] != -1 && i < MAX_MONITORS)
     {
-        i++;
+        i++; //Looking for the first -1 in monitor ids
     }
 
-    if(i == MAX_MONITORS)
+    if(i == MAX_MONITORS) //No space left to push monitor
     {
         fprintf(stderr, "Error: This process is in too much monitors\n");
         exit(1);
@@ -244,7 +244,7 @@ void popMonitor(int pid)
         i++;
     }
 
-    if(i == 0)
+    if(i == 0) //No monitor to pop
     {
         return;
     }
@@ -256,7 +256,7 @@ int createMonitor()
     if(nextMonitorID == MAX_MONITORS)
     {
         fprintf(stderr, "Error: No more monitors available\n");
-        exit(EXIT_FAILURE);
+        exit(1);
     }
     monitors[nextMonitorID].waitingList = -1;
     monitors[nextMonitorID].readyList = -1;
@@ -283,7 +283,7 @@ void enterMonitor(int monitorID)
         addLast(&(desc.readyList), p);
         transfer(processes[head(&readyList)].p);
     }
-    else
+    else //Else lock it for ourselves
     {
         desc.locked = true;
     }
@@ -345,7 +345,6 @@ void exitMonitor() {
     ProcessDescriptor desc = processes[head(&readyList)];
     int mid = getLastMonitorId(desc);
     MonitorDescriptor mon;
-    size_t i = 0;
 
     if(mid == -1)
     {
@@ -364,13 +363,7 @@ void exitMonitor() {
     {
         addLast(&readyList, removeHead(&mon.readyList));
     }
-    //Removing this monitor from the list of monitor of the running
-    //process
-    while(desc.monitors[i] != -1 && i < MAX_MONITORS)
-    {
-        i++;
-    }
-    desc.monitors[i - 1] = -1;
+    popMonitor(head(&readyList));
 }
 
 /**
@@ -382,7 +375,7 @@ EventDescriptor events[MAX_EVENTS];
 int nextEventID = 0;
 
 int createEvent(){ 
-	// We check if we haven't reached the max amount of events yet
+    // We check if we haven't reached the max amount of events yet
     if(nextEventID == MAX_EVENTS)
     {
         fprintf(stderr, "Error: No more events available\n");
@@ -413,8 +406,8 @@ void attendre(int eventID){
 }
 
 void declencher(int eventID){
-	// we check if the given ID is valid
-	if(eventID >= nextEventID)
+    // we check if the given ID is valid
+    if(eventID >= nextEventID)
     {
         fprintf(stderr, "Error: using invalid event!!\n");
         exit(EXIT_FAILURE);
@@ -430,13 +423,12 @@ void declencher(int eventID){
 }
 
 void reinitialiser(int eventID){
-	// we check if the given ID is valid
+    // we check if the given ID is valid
     if(eventID >= nextEventID)
     {
         fprintf(stderr, "Error: using invalid event!!\n");
         exit(EXIT_FAILURE);
     }
-
 
     EventDescriptor event = events[eventID];
     // we reinitialize the state of the given event
