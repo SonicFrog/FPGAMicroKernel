@@ -185,9 +185,9 @@ void V(int s){
 
 void start(){
 
-    fprintf(stderr, "Starting kernel...\n");
+    printf("Starting kernel...\n");
     if (readyList == -1){
-        fprintf(stderr, "Error: No process in the ready list!\n");
+        printf("Error: No process in the ready list!\n");
         exit(1);
     }
     Process process = processes[head(&readyList)].p;
@@ -248,7 +248,7 @@ void pushMonitor(int pid, int mid)
 
     if(i == MAX_MONITORS) //No space left to push monitor
     {
-        fprintf(stderr, "Error: This process is in too much monitors\n");
+        printf("Error: This process is in too much monitors\n");
         exit(1);
     }
 
@@ -285,11 +285,11 @@ int popMonitor(int pid)
 
 int createMonitor()
 {
-    fprintf(stderr, "Creating monitor %d\n", nextMonitorID);
+    printf("Creating monitor %d\n", nextMonitorID);
 
     if(nextMonitorID == MAX_MONITORS)
     {
-        fprintf(stderr, "Error: No more monitors available\n");
+        printf("Error: No more monitors available\n");
         exit(1);
     }
 
@@ -304,25 +304,25 @@ int createMonitor()
  **/
 void enterMonitor(int monitorID)
 {
-    fprintf(stderr, "Process %d entering monitor %d\n", head(&readyList), monitorID);
+    printf("Process %d entering monitor %d\n", head(&readyList), monitorID);
 
     if(monitorID >= nextMonitorID)
     {
-        fprintf(stderr, "Error: using invalid monitor!!\n");
+        printf("Error: using invalid monitor!!\n");
         exit(1);
     }
 
     bool hasLock = false;
     int p = head(&readyList);
     MonitorDescriptor *desc = &monitors[monitorID];
-    
+
     hasLock = hasMonitor(processes[p], monitorID);
 
     pushMonitor(p, monitorID); //Add the monitor to the process's list
 
-    if(desc->locked && !hasLock) 
+    if(desc->locked && !hasLock)
     {
-        fprintf(stderr, "Someone is already in monitor %d\n", monitorID);
+        printf("Someone is already in monitor %d\n", monitorID);
         //Transfer control if the monitor is locked and it's another
         //process that has the lock
         removeHead(&readyList);
@@ -331,7 +331,7 @@ void enterMonitor(int monitorID)
     }
     else //Else lock it for ourselves
     {
-        fprintf(stderr, "Successfully entered monitor %d\n", monitorID);
+        printf("Successfully entered monitor %d\n", monitorID);
         desc->locked = true;
     }
 }
@@ -340,29 +340,28 @@ void wait() {
     int mid = getLastMonitorId(processes[head(&readyList)]);
     int p = removeHead(&readyList); //Get the current PID
     MonitorDescriptor *desc = &monitors[processes[p].monitors[mid]];
-    int pid = head(&(desc->readyList)); //Get the PID to wake up
+    int pid;
 
-    fprintf(stderr, "Process %d waiting on monitor %d\n", p, mid);
-
-    displayNumber(0, p);
-    displayNumber(1, mid);
+    printf("Process %d waiting on monitor %d\n", p, mid);
 
     if(mid == -1)
     {
-        fprintf(stderr, "Tried to wait on no monitors\n");
+        printf("Tried to wait on no monitors\n");
         exit(1);
     }
 
-    addLast(&desc->waitingList, p);
+    pid = head(&(desc->readyList)); //Get the PID to wake up
+
+    addLast(&(desc->waitingList), p);
 
     if(pid == -1) //No one can execute on this monitor
     {
-        fprintf(stderr, "No one in monitor %d\n", mid);
+        printf("No one in monitor %d\n", mid);
         desc->locked = false;
     }
     else //Wake the first ready process for this monitor
     {
-        fprintf(stderr, "Woke up someone on monitor %d\n", mid);
+        printf("Woke up someone on monitor %d\n", mid);
         addLast(&readyList, removeHead(&(desc->readyList)));
     }
 
@@ -372,14 +371,14 @@ void wait() {
 void notify() {
     int mid = getLastMonitorId(processes[head(&readyList)]);
 
-    fprintf(stderr, "Notifying monitor %d\n", mid);
+    printf("Notifying monitor %d\n", mid);
 
     if(mid == -1)
     {
-        fprintf(stderr, "A process that was in no monitor notified\n");
+        printf("A process that was in no monitor notified\n");
         exit(1);
     }
-    
+
     //Put the first process in the waiting list of this monitor
     //in the ready list of the monitor
     addLast(&monitors[mid].readyList, removeHead(&(monitors[mid].waitingList)));
@@ -388,11 +387,11 @@ void notify() {
 void notifyAll() {
     int mid = getLastMonitorId(processes[head(&readyList)]);
 
-    fprintf(stderr, "Notifying all on %d\n", mid);
+    printf("Notifying all on %d\n", mid);
 
     if(mid == -1)
     {
-        fprintf(stderr, "A process that was in no monitor notified a monitor\n");
+        printf("A process that was in no monitor notified a monitor\n");
         exit(1);
     }
 
@@ -409,11 +408,11 @@ void exitMonitor() {
     int mid = popMonitor(head(&readyList));
     MonitorDescriptor *mon;
 
-    fprintf(stderr, "%d exiting monitor %d\n", head(&readyList), mid);
+    printf("%d exiting monitor %d\n", head(&readyList), mid);
 
     if(mid == -1)
     {
-        fprintf(stderr, "A process that was in no monitors exited a monitor\n");
+        printf("A process that was in no monitors exited a monitor\n");
         exit(1);
     }
 
@@ -439,11 +438,11 @@ void exitMonitor() {
 EventDescriptor events[MAX_EVENTS];
 int nextEventID = 0;
 
-int createEvent(){ 
+int createEvent(){
     // We check if we haven't reached the max amount of events yet
     if(nextEventID == MAX_EVENTS)
     {
-        fprintf(stderr, "Error: No more events available\n");
+        printf("Error: No more events available\n");
         exit(EXIT_FAILURE);
     }
     events[nextEventID].waitingList = -1; // no process are waiting yet
@@ -455,7 +454,7 @@ void attendre(int eventID){
     // we check if the given ID is valid
     if(eventID >= nextEventID)
     {
-        fprintf(stderr, "Error: using invalid event!!\n");
+        printf("Error: using invalid event!!\n");
         exit(EXIT_FAILURE);
     }
 
@@ -474,7 +473,7 @@ void declencher(int eventID){
     // we check if the given ID is valid
     if(eventID >= nextEventID)
     {
-        fprintf(stderr, "Error: using invalid event!!\n");
+        printf("Error: using invalid event!!\n");
         exit(EXIT_FAILURE);
     }
 
@@ -491,7 +490,7 @@ void reinitialiser(int eventID){
     // we check if the given ID is valid
     if(eventID >= nextEventID)
     {
-        fprintf(stderr, "Error: using invalid event!!\n");
+        printf("Error: using invalid event!!\n");
         exit(EXIT_FAILURE);
     }
 
