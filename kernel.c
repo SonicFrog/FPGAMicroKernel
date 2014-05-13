@@ -239,12 +239,12 @@ bool hasMonitor(ProcessDescriptor p, int mid)
 void pushMonitor(int pid, int mid)
 {
     size_t i = 0;
-    ProcessDescriptor proc = processes[pid];
+    ProcessDescriptor *proc = &processes[pid];
 
     if(pid == -1 || mid == -1)
         return;
 
-    while(proc.monitors[i] != -1 && i < MAX_MONITORS)
+    while(proc->monitors[i] != -1 && i < MAX_MONITORS)
     {
         i++; //Looking for the first -1 in monitor ids
     }
@@ -254,7 +254,7 @@ void pushMonitor(int pid, int mid)
         fprintf(stderr, "Error: This process is in too much monitors\n");
         exit(1);
     }
-    proc.monitors[i] = mid;
+    proc->monitors[i] = mid;
 }
 
 /**
@@ -345,6 +345,12 @@ void wait() {
     fprintf(stderr, "Process %d waiting on monitor %d\n", p, mid);
 
     addLast(&desc->waitingList, p);
+
+    if(mid == -1)
+    {
+        fprintf(stderr, "Tried to wait on no monitors\n");
+        exit(1);
+    }
 
     if(pid == -1) //No one can execute on this monitor
     {
