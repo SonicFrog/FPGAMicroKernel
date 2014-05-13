@@ -292,6 +292,7 @@ int createMonitor()
         fprintf(stderr, "Error: No more monitors available\n");
         exit(1);
     }
+
     monitors[nextMonitorID].waitingList = -1;
     monitors[nextMonitorID].readyList = -1;
     monitors[nextMonitorID].locked = false;
@@ -342,7 +343,8 @@ void wait() {
     int pid = head(&(desc->readyList)); //Get the PID to wake up
 
     fprintf(stderr, "Process %d waiting on monitor %d\n", p, mid);
-    fflush(stderr);
+
+    displayNumber(0, 9);
 
     addLast(&desc->waitingList, p);
 
