@@ -342,6 +342,7 @@ void wait() {
     int pid = head(&(desc->readyList)); //Get the PID to wake up
 
     fprintf(stderr, "Process %d waiting on monitor %d\n", p, mid);
+    fflush(stderr);
 
     addLast(&desc->waitingList, p);
 
