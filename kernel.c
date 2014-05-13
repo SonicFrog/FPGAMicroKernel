@@ -5,20 +5,32 @@
 #include "kernel.h"
 #include "system_m.h"
 #include "interrupt.h"
-#include "monitor.h"
-#include "event.h"
 
 // Maximum number of semaphores.
 #define MAXSEMAPHORES 10
 // Maximum number of processes.
 #define MAXPROCESS 10
 
+#define MAX_MONITORS 10
+
+#define MAX_EVENTS 10
 
 typedef struct {
     int next;
     Process p;
     int monitors[MAX_MONITORS];
 } ProcessDescriptor;
+
+typedef struct {
+    int waitingList;
+    int readyList;
+    bool locked;
+} MonitorDescriptor;
+
+typedef struct {
+    int waitingList;
+    bool happened;
+} EventDescriptor;
 
 typedef struct {
     int n;
@@ -264,6 +276,11 @@ int createMonitor()
     return nextMonitorID++;
 }
 
+/**
+ * Not checking if the process is already in the monitor
+ * It's the programmer's responsibility to not enter the same monitor
+ * twice and avoid deadlocking ?
+ **/
 void enterMonitor(int monitorID)
 {
     if(monitorID >= nextMonitorID)
