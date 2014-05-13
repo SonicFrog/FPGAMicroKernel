@@ -126,6 +126,7 @@ int head(int* list){
 * **********************************************************/
 
 void createProcess (void (*f)(), int stackSize) {
+    int i;
     if (nextProcessId == MAXPROCESS){
         printf("Error: Maximum number of processes reached!\n");
         exit(1);
@@ -137,7 +138,8 @@ void createProcess (void (*f)(), int stackSize) {
     processes[nextProcessId].next = -1;
     processes[nextProcessId].p = process;
 
-    memset(processes[nextProcessId].monitors, -1, MAX_MONITORS);
+    for(i = 0 ; i < MAX_MONITORS ; i++)
+        processes[nextProcessId].monitors[i] = -1;
     // add process to the list of ready Processes
     addLast(&readyList, nextProcessId);
     nextProcessId++;
@@ -340,7 +342,7 @@ void wait() {
     MonitorDescriptor *desc = &monitors[processes[p].monitors[mid]];
     int pid = head(&(desc->readyList)); //Get the PID to wake up
 
-    fprintf(stderr, "%d waiting on %d\n", p, mid);
+    fprintf(stderr, "%d waiting on monitor %d\n", p, mid);
 
     addLast(&desc->waitingList, p);
 
