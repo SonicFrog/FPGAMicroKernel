@@ -220,6 +220,8 @@ int main() {
 	dummyMonitor1 = createMonitor();
 	dummyMonitor2 = createMonitor();
 
+        displayNumber(0, 9);
+
 	createProcess(consumer0, STACK_SIZE);
 	createProcess(consumer1, STACK_SIZE);
 	createProcess(consumer2, STACK_SIZE);
