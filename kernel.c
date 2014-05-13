@@ -217,7 +217,7 @@ int getLastMonitorId(ProcessDescriptor p)
 }
 
 /**
- * Returns true if p is in the monitor identified by mid
+git  * Returns true if p is in the monitor identified by mid
  **/
 bool hasMonitor(ProcessDescriptor p, int mid)
 {
