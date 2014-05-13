@@ -234,12 +234,12 @@ void pushMonitor(int pid, int mid)
 void popMonitor(int pid)
 {
     size_t i = 0;
-    ProcessDescriptor proc = processes[pid];
+    ProcessDescriptor* proc = &processes[pid];
 
     if(pid == -1)
         return;
 
-    while(proc.monitors[i] != -1 && i < MAX_MONITORS)
+    while(proc->monitors[i] != -1 && i < MAX_MONITORS)
     {
         i++;
     }
@@ -248,7 +248,7 @@ void popMonitor(int pid)
     {
         return;
     }
-    proc.monitors[i - 1] = -1;
+    proc->monitors[i - 1] = -1;
 }
 
 int createMonitor()
@@ -273,38 +273,38 @@ void enterMonitor(int monitorID)
     }
 
     int p = head(&readyList);
-    MonitorDescriptor desc = monitors[monitorID];
+    MonitorDescriptor *desc = &monitors[monitorID];
 
     pushMonitor(p, monitorID); //Add the monitor to the process's list
 
-    if(desc.locked) //Transfer control if the monitor is locked
+    if(desc->locked) //Transfer control if the monitor is locked
     {
         removeHead(&readyList);
-        addLast(&(desc.readyList), p);
+        addLast(&desc->readyList, p);
         transfer(processes[head(&readyList)].p);
     }
     else //Else lock it for ourselves
     {
-        desc.locked = true;
+        desc->locked = true;
     }
 }
 
 void wait() {
     int mid = getLastMonitorId(processes[head(&readyList)]);
     int p = removeHead(&readyList); //Get the current PID
-    MonitorDescriptor desc = monitors[processes[p].monitors[mid]];
-    int pid = head(&(desc.readyList)); //Get the PID to wake up
+    MonitorDescriptor *desc = &monitors[processes[p].monitors[mid]];
+    int pid = head(&(desc->readyList)); //Get the PID to wake up
 
 
-    addLast(&desc.waitingList, p);
+    addLast(&desc->waitingList, p);
 
     if(pid == -1) //No one can execute on this monitor
     {
-        desc.locked = false;
+        desc->locked = false;
     }
     else //Wake the first ready process for this monitor
     {
-        addLast(&readyList, removeHead(&desc.readyList));
+        addLast(&readyList, removeHead(&desc->readyList));
     }
 
     transfer(processes[head(&readyList)].p);
@@ -333,18 +333,18 @@ void notifyAll() {
         exit(1);
     }
 
-    MonitorDescriptor desc = monitors[mid];
+    MonitorDescriptor *desc = &monitors[mid];
 
-    while(head(&desc.waitingList) != -1)
+    while(head(&desc->waitingList) != -1)
     {
-        addLast(&desc.readyList, removeHead(&desc.waitingList));
+        addLast(&desc->readyList, removeHead(&desc->waitingList));
     }
 }
 
 void exitMonitor() {
     ProcessDescriptor desc = processes[head(&readyList)];
     int mid = getLastMonitorId(desc);
-    MonitorDescriptor mon;
+    MonitorDescriptor *mon;
 
     if(mid == -1)
     {
@@ -352,17 +352,18 @@ void exitMonitor() {
         exit(1);
     }
 
-    mon = monitors[mid];
+    mon = &monitors[mid];
 
-    if(mon.readyList == -1) //If no process is ready to run on the
-                            //monitor unlock it
+    if(mon->readyList == -1) //If no process is ready to run
     {
-        mon.locked = false;
+        mon->locked = false; //Unlock the monitor
     }
     else
     {
-        addLast(&readyList, removeHead(&mon.readyList));
+        //Put the first ready to run process in the kernel queue
+        addLast(&readyList, removeHead(&mon->readyList));
     }
+
     popMonitor(head(&readyList));
 }
 
@@ -387,20 +388,20 @@ int createEvent(){
 }
 
 void attendre(int eventID){
-	// we check if the given ID is valid
-	if(eventID >= nextEventID)
+    // we check if the given ID is valid
+    if(eventID >= nextEventID)
     {
         fprintf(stderr, "Error: using invalid event!!\n");
         exit(EXIT_FAILURE);
     }
 
-    EventDescriptor event = events[eventID];
+    EventDescriptor *event = &events[eventID];
 
     // if the event hasn't happened yet we queue the process in the event and transfer control
-    if(!event.happened)
+    if(!event->happened)
     {
         int temp = removeHead(&readyList);
-        addLast(&(event.waitingList), temp);
+        addLast(&(event->waitingList), temp);
         transfer(processes[head(&readyList)].p);
     }
 }
@@ -413,12 +414,12 @@ void declencher(int eventID){
         exit(EXIT_FAILURE);
     }
 
-    EventDescriptor event = events[eventID];
+    EventDescriptor *event = &events[eventID];
 
     // we move all the process waiting on the event in the readylist of our kernel
-    while(head(&event.waitingList) != -1)
+    while(head(&event->waitingList) != -1)
     {
-        addLast(&readyList, removeHead(&event.waitingList));
+        addLast(&readyList, removeHead(&event->waitingList));
     }
 }
 
@@ -430,7 +431,7 @@ void reinitialiser(int eventID){
         exit(EXIT_FAILURE);
     }
 
-    EventDescriptor event = events[eventID];
+    EventDescriptor *event = &events[eventID];
     // we reinitialize the state of the given event
-    event.happened = false;
+    event->happened = false;
 }
