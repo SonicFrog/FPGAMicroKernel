@@ -215,7 +215,7 @@ int getLastMonitorId(ProcessDescriptor p)
         i++;
     }
 
-    return p.monitors[i - 1];
+    return p.monitors[(i == 0) ? i : i - 1];
 }
 
 /**
@@ -353,6 +353,7 @@ void wait() {
     }
     else //Wake the first ready process for this monitor
     {
+        fprintf(stderr, "Woke up someone on monitor %d\n", mid);
         addLast(&readyList, removeHead(&(desc->readyList)));
     }
 
