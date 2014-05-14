@@ -181,9 +181,10 @@ bool hasMonitor(int pid, int mid)
  **/
 int peekMonitor(ProcessDescriptor *p)
 {
-	if(p->m_sp == 0) {
-		return -1;
-	}
+    if(p->m_sp == 0)
+    {
+        return -1;
+    }
     return p->monitors[p->m_sp - 1];
 }
 
@@ -262,14 +263,14 @@ void enterMonitor(int monitorId)
     }
 
     alreadyLocked = isInMonitor(proc, monitorId);
-      
+
     pushMonitor(proc, monitorId);
 
     if(!alreadyLocked) //If we don't already have the lock of this monitor
     {
         if(monitors[monitorId].locked) //And if it's locked somewhere else
         {
-            
+
             addLast(&(monitors[monitorId].readyList), removeHead(&readyList)); // we put the current process in the readyList
             transfer(processes[head(&readyList)].p); // we transfer control to another process.
         }
@@ -328,7 +329,7 @@ void notify()
 }
 
 /**
- * Notify all processes waiting on the current event
+ * Notify all processes waiting on the current monitor
  **/
 void notifyAll()
 {
@@ -341,7 +342,7 @@ void notifyAll()
     	exit(EXIT_FAILURE);
     }
 
-    // we put every process of the waitingList in the readyList of the current event.
+    // we put every process of the waitingList in the readyList of the current monitor.
     while(head(&(monitors[monitorId].waitingList)) != -1)
     {
         addLast(&(monitors[monitorId].readyList),
