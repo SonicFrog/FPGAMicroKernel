@@ -6,37 +6,30 @@
 #include "system_m.h"
 #include "interrupt.h"
 
-// Maximum number of semaphores.
-#define MAXSEMAPHORES 10
 // Maximum number of processes.
 #define MAXPROCESS 10
-
+// Maximum number of monitors
 #define MAX_MONITORS 10
-
+// Maximum number of events
 #define MAX_EVENTS 10
 
 typedef struct {
     int next;
     Process p;
-    int monitors[MAX_MONITORS];
-    int m_sp;
+    int monitors[MAX_MONITORS]; // monitors stack
+    int m_sp; // stack pointer of the monitors stack
 } ProcessDescriptor;
 
 typedef struct {
-    int waitingList;
-    int readyList;
+    int waitingList; // contains all process that have called wait() and are not yet notified
+    int readyList; // contains all process that are waiting for the Monitor to be unlocked (they are ready to run)
     bool locked;
 } MonitorDescriptor;
 
 typedef struct {
-    int waitingList;
+    int waitingList; // contains all process that are waiting on the event to happen
     bool happened;
 } EventDescriptor;
-
-typedef struct {
-    int n;
-    int waitingList;
-} SemaphoreDescriptor;
 
 
 // Global variables
@@ -47,10 +40,6 @@ int readyList = -1;
 // list of process descriptors
 ProcessDescriptor processes[MAXPROCESS];
 int nextProcessId = 0;
-
-// list of semaphore descriptors
-SemaphoreDescriptor semaphores[MAXSEMAPHORES];
-int nextSemaphoreId = 0;
 
 /***********************************************************
  ***********************************************************
@@ -97,7 +86,7 @@ void addFirst(int* list, int processId){
 // remove element that is head of the list
 int removeHead(int* list){
     if (*list == -1){
-        return(-1);
+        return(-1); // we modified it so that it returns -1 if there is no element to remove
     }
     else {
         int head = *list;
@@ -187,6 +176,9 @@ bool hasMonitor(int pid, int mid)
     return false;
 }
 
+/**
+ * Returns the element on top of the monitor stack of a process without deleting it from the stack.
+ **/
 int peekMonitor(ProcessDescriptor *p)
 {
 	if(p->m_sp == 0) {
@@ -195,6 +187,9 @@ int peekMonitor(ProcessDescriptor *p)
     return p->monitors[p->m_sp - 1];
 }
 
+/**
+ * Returns and delete the element on top of a process' monitor's stack.
+ **/
 int popMonitor(ProcessDescriptor *p)
 {
     if(p->m_sp == -1) //Nothing to pop
@@ -204,16 +199,22 @@ int popMonitor(ProcessDescriptor *p)
     return p->monitors[--(p->m_sp)];
 }
 
+/**
+ * Add an element on at the top of a process' monitor's stack.
+ **/
 void pushMonitor(ProcessDescriptor *p, int monitorId)
 {
     if(p->m_sp == MAX_MONITORS)
     {
-        
-        exit(1);
+        fprintf(stderr, "Process has too many imbricated monitor calls\n");
+        exit(EXIT_FAILURE);
     }
     p->monitors[p->m_sp++] = monitorId;
 }
 
+/**
+ * Returns true if process p is in monitor monitorId
+ **/
 bool isInMonitor(ProcessDescriptor *p, int monitorId)
 {
     int i;
@@ -227,21 +228,27 @@ bool isInMonitor(ProcessDescriptor *p, int monitorId)
     return false;
 }
 
-
+/**
+ * initialize a new monitor if there isn't aready too many of them.
+ **/
 int createMonitor()
 {
     if(nextMonitorID >= MAX_MONITORS)
     {
-        exit(1);
+    	fprintf(stderr, "There is already too many Monitors!\n");
+    	exit(EXIT_FAILURE);
     }
 
-    monitors[nextMonitorID].waitingList = -1;
-    monitors[nextMonitorID].readyList = -1;
-    monitors[nextMonitorID].locked = false;
+    monitors[nextMonitorID].waitingList = -1; // waiting list is yet empty
+    monitors[nextMonitorID].readyList = -1; // ready list is yet empty
+    monitors[nextMonitorID].locked = false; // there is no process in this event yet
 
     return nextMonitorID++;
 }
 
+/**
+ * Tries to enter the given monitor depending if it's locked or not.
+ **/
 void enterMonitor(int monitorId)
 {
     ProcessDescriptor *proc = &(processes[head(&readyList)]);
@@ -250,28 +257,32 @@ void enterMonitor(int monitorId)
 
     if(monitorId < 0 || monitorId >= nextMonitorID)
     {
-        exit(1);
+    	fprintf(stderr, "Invalid monitorId!\n");
+    	exit(EXIT_FAILURE);
     }
 
     alreadyLocked = isInMonitor(proc, monitorId);
       
     pushMonitor(proc, monitorId);
 
-    if(!alreadyLocked) //Si on n'a pas déjà le lock sur ce moniteur
+    if(!alreadyLocked) //If we don't already have the lock of this monitor
     {
-        if(monitors[monitorId].locked) //Et qu'il est déjà lock ailleurs
+        if(monitors[monitorId].locked) //And if it's locked somewhere else
         {
             
-            addLast(&(monitors[monitorId].readyList), removeHead(&readyList));
-            transfer(processes[head(&readyList)].p);
+            addLast(&(monitors[monitorId].readyList), removeHead(&readyList)); // we put the current process in the readyList
+            transfer(processes[head(&readyList)].p); // we transfer control to another process.
         }
-        else
+        else // else if it's unlocked, we take it for this process and lock it.
         {
             monitors[monitorId].locked = true;
         }
     }
 }
 
+/**
+ * Wait to be notified by a given monitor
+ **/
 void wait()
 {
     ProcessDescriptor *proc = &(processes[head(&readyList)]);
@@ -279,20 +290,27 @@ void wait()
 
     if(monitorId == -1)
     {
-        exit(1);
+    	fprintf(stderr, "Error: Process is in no monitors\n");
+    	exit(EXIT_FAILURE);
     }
 
+    // if there is no other process ready to run in this monitor, we unlock the monitor
     if(head(&(monitors[monitorId].readyList)) == -1)
     {
         monitors[monitorId].locked = false;
     }
 
+    // we add our process to the waiting list of the given monitor
     addLast(&(monitors[monitorId].waitingList), removeHead(&readyList));
-    addLast(&readyList, removeHead(&(monitors[monitorId].readyList)));
 
+    // we transfer control to another process (and add head of this monitor readylist if there is one)
+    addLast(&readyList, removeHead(&(monitors[monitorId].readyList)));
     transfer(processes[head(&readyList)].p);
 }
 
+/**
+ * Notify a process from the waitingList of the current monitor
+ **/
 void notify()
 {
     ProcessDescriptor *proc = &(processes[head(&readyList)]);
@@ -300,13 +318,18 @@ void notify()
 
     if(monitorId == -1)
     {
-        exit(1);
+    	fprintf(stderr, "Error: Process is in no monitors\n");
+    	exit(EXIT_FAILURE);
     }
 
+    // we transfer the head of its waitingList to its readyList.
     addLast(&(monitors[monitorId].readyList),
             removeHead(&(monitors[monitorId].waitingList)));
 }
 
+/**
+ * Notify all processes waiting on the current event
+ **/
 void notifyAll()
 {
     ProcessDescriptor *proc = &(processes[head(&readyList)]);
@@ -314,9 +337,11 @@ void notifyAll()
 
     if(monitorId == -1)
     {
-        exit(1);
+    	fprintf(stderr, "Error: Process is in no monitors\n");
+    	exit(EXIT_FAILURE);
     }
 
+    // we put every process of the waitingList in the readyList of the current event.
     while(head(&(monitors[monitorId].waitingList)) != -1)
     {
         addLast(&(monitors[monitorId].readyList),
@@ -324,6 +349,9 @@ void notifyAll()
     }
 }
 
+/**
+ * Leaves the current monitor section
+ **/
 void exitMonitor()
 {
     ProcessDescriptor *proc = &(processes[head(&readyList)]);
@@ -331,16 +359,19 @@ void exitMonitor()
 
     if(monitorId == -1)
     {
-        exit(1);
+    	fprintf(stderr, "Error: Process is in no monitors\n");
+        exit(EXIT_FAILURE);
     }
 
+    // If there is no more ready process for the current monitor
     if(head(&(monitors[monitorId].readyList)) == -1)
     {
-        if(!isInMonitor(proc, monitorId))
+        if(!isInMonitor(proc, monitorId)) // And this monitor is no longer in the stack of the current process
         {
-            monitors[monitorId].locked = false;
+            monitors[monitorId].locked = false; // We unlock.
         }
     }
+    // If there is still ready process, we put the head of the monitor's readyList in the kernel readyList and we do not unlock the monitor
     else
     {
         addLast(&readyList,
@@ -356,6 +387,9 @@ void exitMonitor()
 EventDescriptor events[MAX_EVENTS];
 int nextEventID = 0;
 
+/**
+ * We create a new event if we haven't reached the max amount of them
+ **/
 int createEvent(){
     // We check if we haven't reached the max amount of events yet
     if(nextEventID == MAX_EVENTS)
@@ -369,10 +403,11 @@ int createEvent(){
     return nextEventID++; // return the ID of the newly created event
 }
 
+/**
+ * We put the current process in the waitingList of the current event
+ **/
 void attendre(int eventID)
 {
-    fprintf(stderr, "Waiting on event %d\n", eventID);
-
     if(eventID < 0 || eventID >= nextEventID)
     {
         printf("Error: using invalid event!!\n");
@@ -386,17 +421,18 @@ void attendre(int eventID)
     }
 }
 
+/**
+ * Take all processes of the waitingList out of it and put them in the kernel readyList
+ **/
 void declencher(int eventID)
 {
-    fprintf(stderr, "Triggering event %d\n", eventID);
-
     if(eventID < 0 || eventID >= nextEventID)
     {
         printf("Error: using invalid event!!\n");
         exit(EXIT_FAILURE);
     }
 
-    events[eventID].happened = true;
+    events[eventID].happened = true; // YES IT HAS HAPPENED! Don't forget to state it or it will deadlock
 
     while(head(&(events[eventID].waitingList)) != -1)
     {
@@ -404,11 +440,12 @@ void declencher(int eventID)
     }
 }
 
+/**
+ * We turn the given event back to untriggered.
+ **/
 void reinitialiser(int eventID)
 {
-    fprintf(stderr, "Reinit event %d\n", eventID);
-
-    if(eventID < 0 || eventID >= nextEventID)
+	if(eventID < 0 || eventID >= nextEventID)
     {
         printf("Error: using invalid event!!\n");
         exit(EXIT_FAILURE);
