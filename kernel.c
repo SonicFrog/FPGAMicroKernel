@@ -44,8 +44,8 @@ int nextProcessId = 0;
 /***********************************************************
  ***********************************************************
             Utility functions for list manipulation
-************************************************************
-* **********************************************************/
+            ************************************************************
+            * **********************************************************/
 
 // add element to the tail of the list
 void addLast(int* list, int processId) {
@@ -110,8 +110,8 @@ int head(int* list){
 /***********************************************************
  ***********************************************************
                     Kernel functions
-************************************************************
-* **********************************************************/
+                    ************************************************************
+                    * **********************************************************/
 
 void createProcess (void (*f)(), int stackSize) {
     if (nextProcessId == MAXPROCESS){
@@ -237,7 +237,7 @@ int createMonitor()
     if(nextMonitorID >= MAX_MONITORS)
     {
     	fprintf(stderr, "There is already too many Monitors!\n");
-    	exit(EXIT_FAILURE);
+    	exit(1);
     }
 
     monitors[nextMonitorID].waitingList = -1; // waiting list is yet empty
@@ -259,7 +259,7 @@ void enterMonitor(int monitorId)
     if(monitorId < 0 || monitorId >= nextMonitorID)
     {
     	fprintf(stderr, "Invalid monitorId!\n");
-    	exit(EXIT_FAILURE);
+        return;
     }
 
     alreadyLocked = isInMonitor(proc, monitorId);
@@ -292,7 +292,7 @@ void wait()
     if(monitorId == -1)
     {
     	fprintf(stderr, "Error: Process is in no monitors\n");
-    	exit(EXIT_FAILURE);
+        return;
     }
 
     // if there is no other process ready to run in this monitor, we unlock the monitor
@@ -320,7 +320,7 @@ void notify()
     if(monitorId == -1)
     {
     	fprintf(stderr, "Error: Process is in no monitors\n");
-    	exit(EXIT_FAILURE);
+        return;
     }
 
     // we transfer the head of its waitingList to its readyList.
@@ -339,7 +339,7 @@ void notifyAll()
     if(monitorId == -1)
     {
     	fprintf(stderr, "Error: Process is in no monitors\n");
-    	exit(EXIT_FAILURE);
+        return;
     }
 
     // we put every process of the waitingList in the readyList of the current monitor.
@@ -361,7 +361,7 @@ void exitMonitor()
     if(monitorId == -1)
     {
     	fprintf(stderr, "Error: Process is in no monitors\n");
-        exit(EXIT_FAILURE);
+        return;
     }
 
     // If there is no more ready process for the current monitor
@@ -391,12 +391,13 @@ int nextEventID = 0;
 /**
  * We create a new event if we haven't reached the max amount of them
  **/
-int createEvent(){
+int createEvent()
+{
     // We check if we haven't reached the max amount of events yet
     if(nextEventID == MAX_EVENTS)
     {
         printf("Error: No more events available\n");
-        exit(EXIT_FAILURE);
+        exit(1);
     }
     events[nextEventID].waitingList = -1; // no process are waiting yet
     events[nextEventID].happened = false; // event hasn't happened yet
@@ -412,7 +413,7 @@ void attendre(int eventID)
     if(eventID < 0 || eventID >= nextEventID)
     {
         printf("Error: using invalid event!!\n");
-        exit(EXIT_FAILURE);
+        return;
     }
 
     if(!events[eventID].happened)
@@ -430,7 +431,7 @@ void declencher(int eventID)
     if(eventID < 0 || eventID >= nextEventID)
     {
         printf("Error: using invalid event!!\n");
-        exit(EXIT_FAILURE);
+        return;
     }
 
     events[eventID].happened = true; // YES IT HAS HAPPENED! Don't forget to state it or it will deadlock
@@ -446,10 +447,10 @@ void declencher(int eventID)
  **/
 void reinitialiser(int eventID)
 {
-	if(eventID < 0 || eventID >= nextEventID)
+    if(eventID < 0 || eventID >= nextEventID)
     {
         printf("Error: using invalid event!!\n");
-        exit(EXIT_FAILURE);
+        return;
     }
 
     events[eventID].happened = false;
